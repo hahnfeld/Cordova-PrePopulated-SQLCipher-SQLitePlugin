@@ -21,7 +21,7 @@ import org.apache.cordova.CallbackContext;
 
 import android.database.Cursor;
 
-import android.database.sqlite.*;
+import net.sqlcipher.database.*;
 
 import android.util.Base64;
 import android.util.Log;
@@ -76,8 +76,9 @@ public class SQLitePlugin extends CordovaPlugin
 			if (action.equals("open")) {
 				JSONObject o = args.getJSONObject(0);
 				String dbname = o.getString("name");
+				String key = o.getString("key");
 
-				this.openDatabase(dbname, null);
+				this.openDatabase(dbname, key);
 			}
 			else if (action.equals("close")) {
 				JSONObject o = args.getJSONObject(0);
@@ -199,6 +200,8 @@ public class SQLitePlugin extends CordovaPlugin
 	 */
 	private void openDatabase(String dbname, String password)
 	{
+		SQLiteDatabase.loadLibs(this.cordova.getActivity());
+
 		if (this.getDatabase(dbname) != null) this.closeDatabase(dbname);
 		
 		String completeDBName = dbname + ".db";
@@ -213,7 +216,7 @@ public class SQLitePlugin extends CordovaPlugin
 
 		Log.v("info", "Open sqlite db: " + dbfile.getAbsolutePath());
 
-		SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, null);
+		SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, password, null);
 
 		dbmap.put(dbname, mydb);
 	}
@@ -301,7 +304,7 @@ public class SQLitePlugin extends CordovaPlugin
 
 		// Use try & catch just in case android.os.Build.VERSION.SDK_INT >= 16 was lying:
 		try {
-			status = SQLiteDatabase.deleteDatabase(dbfile);
+			status = dbfile.delete();
 		} catch (Exception ex) {
 			// log & give up:
 			Log.v("executeSqlBatch", "deleteDatabase(): Error=" +  ex.getMessage());
@@ -421,7 +424,7 @@ public class SQLitePlugin extends CordovaPlugin
 						}
 					}
 
-					int rowsAffected = -1; // (assuming invalid)
+					long rowsAffected = -1; // (assuming invalid)
 
 					// Use try & catch just in case android.os.Build.VERSION.SDK_INT >= 11 is lying:
 					try {
